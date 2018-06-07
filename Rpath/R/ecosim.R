@@ -138,15 +138,21 @@ rsim.fishing <- function(params, years){
   nyrs <- length(years)
   #if (length(years)>1){nyrs <- length(years)} else {nyrs <- years}
   
+  MF <- (matrix(1.0, nyrs * 12, params$NUM_GEARS + 1))
   YF <- (matrix(0.0, nyrs, params$NUM_BIO   + 1))
-  GF <- (matrix(1.0, nyrs, params$NUM_GEARS + 1))
+  #GF <- (matrix(1.0, nyrs, params$NUM_GEARS + 1))
   #if (length(years)>1){
-   rownames(YF) <- years
-   rownames(GF) <- years
+  rownames(YF) <- years
+  year.m <- c()
+  for(iyear in 1:nyrs){
+    iyear.m <- paste0(years[iyear], '.', 1:12)
+    year.m  <- c(year.m, iyear.m)
+  }
+  rownames(MF) <- year.m
   #}
   colnames(YF) <- params$spname[1:(params$NUM_BIO+1)]
-  colnames(GF) <- c("Outside",params$spname[(params$NUM_BIO+2):(params$NUM_GROUPS+1)])
-  fishing <- list(EFFORT = GF,
+  colnames(MF) <- c("Outside",params$spname[(params$NUM_BIO+2):(params$NUM_GROUPS+1)])
+  fishing <- list(EFFORT = MF,
                   FRATE  = YF,
                   CATCH  = YF)   
   
@@ -161,6 +167,12 @@ rsim.forcing <- function(params, years){
   
   nyrs <- length(years)
   MF <- (matrix(1.0, nyrs * 12, params$NUM_GROUPS + 1))
+  year.m <- c()
+  for(iyear in 1:nyrs){
+    iyear.m <- paste0(years[iyear], '.', 1:12)
+    year.m  <- c(year.m, iyear.m)
+  }
+  rownames(MF) <- year.m
   colnames(MF) <- params$spname
   forcing <- list(byprey    = MF, 
                   bymort    = MF, 
