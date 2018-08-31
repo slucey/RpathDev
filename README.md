@@ -6,6 +6,9 @@ The initial files are the code sent by Kerim to Sean on March 31, 2014 (ecopath_
 Files have been renamed to drop the version number and take advantage of this VCS
 
 Beta version notes:
+v0.0.0.917 - Fixed bug with adjust.fishing so one value can be applied over a range of sim.years
+
+v0.0.0.916 - Fixed bug with original scenario file and stanza files being overwritten by C code.
 
 =======
 v0.0.0.915 - Fixed bug with egg stanza calculation where the Wmat matrix was indexed wrong inthe calculation.

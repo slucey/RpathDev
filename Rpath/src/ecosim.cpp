@@ -241,8 +241,7 @@ int y, m, dd;
    
 // Parameters from stanzas
    const int Nsplit         = as<int>(stanzas["Nsplit"]);
-   NumericVector stanzaPred = as<NumericVector>(stanzas["stanzaPred"]);
-   
+
 // Parameter need to track catch by Gear
    const NumericVector FishFrom = as<NumericVector>(params["FishFrom"]);
    
@@ -267,7 +266,7 @@ int y, m, dd;
    if(Nsplit > 0){
      SplitSetPred(stanzas, state); 
    } 
-   
+
    // Use the initial derivative calculated outside of function
       List dyt = InitDeriv;
 
@@ -284,7 +283,8 @@ int y, m, dd;
          NumericVector old_BB    = as<NumericVector>(state["BB"]);
          NumericVector old_Ftime = as<NumericVector>(state["Ftime"]);         
  	       NumericVector dydt0     = as<NumericVector>(dyt["DerivT"]);
-         
+ 	       NumericVector stanzaPred = as<NumericVector>(state["StanzaPred"]);
+ 	                
       // Calculate new derivative    
  	       dyt   = deriv_vector(params, state, forcing, fishing, stanzas, y, m, 0);
       
@@ -487,14 +487,14 @@ int sp, links, prey, pred, gr, egr, dest, isp, ist, ieco;
 // Age-structured parameters
    const int Nsplit                   = as<int>(stanzas["Nsplit"]);
    const NumericVector Nstanzas       = as<NumericVector>(stanzas["Nstanzas"]);
-   const NumericVector stanzaPred     = as<NumericVector>(stanzas["stanzaPred"]);
-   const NumericVector stanzaBasePred = as<NumericVector>(stanzas["stanzaBasePred"]);
+   const NumericVector baseStanzaPred = as<NumericVector>(stanzas["baseStanzaPred"]);
    NumericMatrix EcopathCode          = as<NumericMatrix>(stanzas["EcopathCode"]);
 
 // State vectors
    const NumericVector state_BB        = as<NumericVector>(state["BB"]);
    const NumericVector state_Ftime     = as<NumericVector>(state["Ftime"]);
-
+   const NumericVector stanzaPred      = as<NumericVector>(state["StanzaPred"]);
+   
 //FISHING  NumericVector TerminalF        = as<NumericVector>(params["TerminalF"]);
 //FISHING    NumericVector TARGET_BIO       = as<NumericVector>(params["TARGET_BIO"]);
 //FISHING    NumericVector TARGET_F         = as<NumericVector>(params["TARGET_F"]);
@@ -545,9 +545,9 @@ int sp, links, prey, pred, gr, egr, dest, isp, ist, ieco;
      for (isp = 1; isp <=Nsplit; isp++){
        for(ist = 1; ist <= Nstanzas[isp]; ist++){
          ieco = EcopathCode(isp, ist);
-         if (stanzaBasePred[ieco] > 0){
+         if (baseStanzaPred[ieco] > 0){
            predYY[ieco] = state_Ftime[ieco] * stanzaPred[ieco] /
-                          stanzaBasePred[ieco];
+                          baseStanzaPred[ieco];
          }
        }
      }
@@ -666,7 +666,7 @@ int sp, links, prey, pred, gr, egr, dest, isp, ist, ieco;
 //   
  double caught;   
    // Apply specified Effort by Gear to catch (using Ecopath-set Q)
-      NumericVector EFFORT = (NumericVector)EffortMat(y,_);
+      NumericVector EFFORT = (NumericVector)EffortMat(dd,_);
       for (links=1; links<=NumFishingLinks; links++){
  				 prey = FishFrom[links];
  				 gr   = FishThrough[links];
@@ -686,6 +686,7 @@ int sp, links, prey, pred, gr, egr, dest, isp, ist, ieco;
                 // if (caught <= -EPSILON) {caught = TerminalF[sp] * state_BB[sp];}
              // KYA 10/6/17 Added productivity to BB limit for F>1 species (salmon inspired)
                 if (caught >= state_BB[sp] + NetProd[sp]){caught = (1.0 - EPSILON) * (state_BB[sp] + NetProd[sp]);}
+                if (caught<0){caught=0;}
              FishingLoss[sp] += caught;
              FishingThru[0]  += caught;
              FishingGain[0]  += caught;
@@ -794,14 +795,14 @@ int SplitSetPred(List stanzas, List state){
   //stanza parameters
   const int Nsplit             = as<int>(stanzas["Nsplit"]);     
   const NumericVector Nstanzas = as<NumericVector>(stanzas["Nstanzas"]);
-  NumericMatrix NageS          = as<NumericMatrix>(stanzas["NageS"]);
-  NumericMatrix WageS          = as<NumericMatrix>(stanzas["WageS"]);
-  NumericMatrix WWa            = as<NumericMatrix>(stanzas["WWa"]);
   NumericMatrix Age1           = as<NumericMatrix>(stanzas["Age1"]);
   NumericMatrix Age2           = as<NumericMatrix>(stanzas["Age2"]);
   NumericMatrix EcopathCode    = as<NumericMatrix>(stanzas["EcopathCode"]);
-  NumericVector stanzaPred     = as<NumericVector>(stanzas["stanzaPred"]);
-
+  //Parts of Stanza State  
+  NumericMatrix NageS          = as<NumericMatrix>(state["NageS"]);
+  NumericMatrix WageS          = as<NumericMatrix>(state["WageS"]);
+  NumericMatrix WWa            = as<NumericMatrix>(state["WWa"]);
+  NumericVector stanzaPred     = as<NumericVector>(state["StanzaPred"]);
   //state parameters
   NumericVector state_BB = as<NumericVector>(state["BB"]);
   NumericVector state_NN = as<NumericVector>(state["NN"]);
@@ -837,6 +838,12 @@ int SplitUpdate(List stanzas, List state, List forcing, List deriv, int yr, int 
   const NumericVector Nstanzas       = as<NumericVector>(stanzas["Nstanzas"]);
   const NumericVector vBM            = as<NumericVector>(stanzas["vBM"]);
   const NumericVector Wmat           = as<NumericVector>(stanzas["Wmat"]);
+  //const NumericVector Wmat001        = as<NumericVector>(stanzas["Wmat001"]);  
+  //const NumericVector Wmat50         = as<NumericVector>(stanzas["Wmat50"]);  
+  //const NumericVector WmatSpread     = as<NumericVector>(stanzas["WmatSpread"]);  
+  //const NumericVector Amat001        = as<NumericVector>(stanzas["Amat001"]);  
+  //const NumericVector Amat50         = as<NumericVector>(stanzas["Amat50"]);  
+  //const NumericVector AmatSpread     = as<NumericVector>(stanzas["AmatSpread"]);  
   const NumericVector baseEggsStanza = as<NumericVector>(stanzas["baseEggsStanza"]);
   const NumericVector RscaleSplit    = as<NumericVector>(stanzas["RscaleSplit"]);
   const NumericVector RzeroS         = as<NumericVector>(stanzas["RzeroS"]);
@@ -845,17 +852,19 @@ int SplitUpdate(List stanzas, List state, List forcing, List deriv, int yr, int 
   const NumericVector SpawnEnergy    = as<NumericVector>(stanzas["SpawnEnergy"]);
   const NumericVector SpawnX         = as<NumericVector>(stanzas["SpawnX"]);
   const NumericVector baseSpawnBio   = as<NumericVector>(stanzas["baseSpawnBio"]);
-  NumericVector SpawnBio             = as<NumericVector>(stanzas["SpawnBio"]);  
-  NumericVector EggsStanza           = as<NumericVector>(stanzas["EggsStanza"]);  
-  NumericMatrix NageS                = as<NumericMatrix>(stanzas["NageS"]);
-  NumericMatrix WageS                = as<NumericMatrix>(stanzas["WageS"]);
+  // The following matrices should also be const
   NumericMatrix SplitAlpha           = as<NumericMatrix>(stanzas["SplitAlpha"]);
-  NumericMatrix WWa                  = as<NumericMatrix>(stanzas["WWa"]);
   NumericMatrix Age1                 = as<NumericMatrix>(stanzas["Age1"]);
   NumericMatrix Age2                 = as<NumericMatrix>(stanzas["Age2"]);
   NumericMatrix EcopathCode          = as<NumericMatrix>(stanzas["EcopathCode"]);
-  NumericVector stanzaPred           = as<NumericVector>(stanzas["stanzaPred"]);
-
+  // Parts of Stanza State
+  NumericVector SpawnBio             = as<NumericVector>(state["SpawnBio"]);  
+  NumericVector EggsStanza           = as<NumericVector>(state["EggsStanza"]);  
+  NumericMatrix NageS                = as<NumericMatrix>(state["NageS"]);
+  NumericMatrix WageS                = as<NumericMatrix>(state["WageS"]);  
+  NumericMatrix WWa                  = as<NumericMatrix>(state["WWa"]);
+  NumericVector stanzaPred           = as<NumericVector>(state["StanzaPred"]);  
+  
   //state parameters
   const NumericVector state_BB = as<NumericVector>(state["BB"]);
   
@@ -876,15 +885,26 @@ int SplitUpdate(List stanzas, List state, List forcing, List deriv, int yr, int 
       for(ia = Age1(isp, ist); ia <= Age2(isp, ist); ia++){
         NageS(ia, isp) = NageS(ia, isp) * Su;
         WageS(ia, isp) = vBM[isp] * WageS(ia, isp) + Gf * SplitAlpha(ia, isp);
-        if(WageS(ia, isp) > Wmat[isp]){
-          SpawnBio[isp] += NageS(ia, isp) * (WageS(ia, isp) - Wmat[isp]);
-        };
+      // KYA 5/7/18 - started to add alternate maturity method, commented out for now
+        //if(Wmat[isp]<0.0){
+        //  if ((WageS(ia, isp)>Wmat001[isp])&&(ia>Amat001[isp])){
+        //    SpawnBio[isp] += NageS(ia, isp) * WageS(ia, isp)/(1. + exp( 
+        //                   -((WageS(ia, isp) - Wmat50[isp]) / WmatSpread[isp])   
+        //                   -((ia             - Amat50[isp]) / AmatSpread[isp]) ));                   
+        //  }
+        //}
+        //else{
+          if(WageS(ia, isp) > Wmat[isp]){
+            SpawnBio[isp] += NageS(ia, isp) * (WageS(ia, isp) - Wmat[isp]);
+          };
+        //}
       }
     }
     EggsStanza[isp] = SpawnBio[isp] * SpawnEnergy[isp] * SpawnX[isp] /
                       (SpawnX[isp] - 1.0 + (SpawnBio[isp] / baseSpawnBio[isp]));
     EggsStanza[isp] *= force_byrecs(yr * STEPS_PER_YEAR + mon, ieco);
 
+    //Rprintf("%g %g %g %g %g",isp,SpawnBio[isp],EggsStanza[isp],)
     // Need to add monthly recruitment
 
     // now update n and wt looping backward over age
